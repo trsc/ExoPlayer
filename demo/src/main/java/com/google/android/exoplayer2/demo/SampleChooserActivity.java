@@ -387,11 +387,11 @@ public class SampleChooserActivity extends Activity {
 
     public Intent buildIntent(Context context) {
       Intent intent = new Intent(context, PlayerActivity.class);
-      intent.putExtra(PlayerActivity.PREFER_EXTENSION_DECODERS, preferExtensionDecoders);
+      intent.putExtra(PlayerFragment.PREFER_EXTENSION_DECODERS, preferExtensionDecoders);
       if (drmSchemeUuid != null) {
-        intent.putExtra(PlayerActivity.DRM_SCHEME_UUID_EXTRA, drmSchemeUuid.toString());
-        intent.putExtra(PlayerActivity.DRM_LICENSE_URL, drmLicenseUrl);
-        intent.putExtra(PlayerActivity.DRM_KEY_REQUEST_PROPERTIES, drmKeyRequestProperties);
+        intent.putExtra(PlayerFragment.DRM_SCHEME_UUID_EXTRA, drmSchemeUuid.toString());
+        intent.putExtra(PlayerFragment.DRM_LICENSE_URL, drmLicenseUrl);
+        intent.putExtra(PlayerFragment.DRM_KEY_REQUEST_PROPERTIES, drmKeyRequestProperties);
       }
       return intent;
     }
@@ -415,8 +415,8 @@ public class SampleChooserActivity extends Activity {
     public Intent buildIntent(Context context) {
       return super.buildIntent(context)
           .setData(Uri.parse(uri))
-          .putExtra(PlayerActivity.EXTENSION_EXTRA, extension)
-          .setAction(PlayerActivity.ACTION_VIEW);
+          .putExtra(PlayerFragment.EXTENSION_EXTRA, extension)
+          .setAction(PlayerFragment.ACTION_VIEW);
     }
 
   }
@@ -441,9 +441,9 @@ public class SampleChooserActivity extends Activity {
         extensions[i] = children[i].extension;
       }
       return super.buildIntent(context)
-          .putExtra(PlayerActivity.URI_LIST_EXTRA, uris)
-          .putExtra(PlayerActivity.EXTENSION_LIST_EXTRA, extensions)
-          .setAction(PlayerActivity.ACTION_VIEW_LIST);
+          .putExtra(PlayerFragment.URI_LIST_EXTRA, uris)
+          .putExtra(PlayerFragment.EXTENSION_LIST_EXTRA, extensions)
+          .setAction(PlayerFragment.ACTION_VIEW_LIST);
     }
 
   }
