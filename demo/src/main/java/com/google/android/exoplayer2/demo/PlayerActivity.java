@@ -1,6 +1,7 @@
 package com.google.android.exoplayer2.demo;
 
 import android.app.Activity;
+import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
@@ -11,6 +12,9 @@ import java.util.UUID;
 
 public class PlayerActivity extends Activity {
 
+
+    private DummyFragment dummyFragment;
+    private int currentOrientation;
 
     /** Called when the activity is first created. */
     @Override
@@ -28,13 +32,34 @@ public class PlayerActivity extends Activity {
         playerFragment.setArguments(extras);
 
 
-        DummyFragment dummyFragment = new DummyFragment();
+        dummyFragment = new DummyFragment();
+        currentOrientation = getResources().getConfiguration().orientation;
 
         // Add the fragment to the 'fragment_container' FrameLayout
-        getFragmentManager().beginTransaction()
-                .add(R.id.fragment_container, playerFragment)
-                .add(R.id.fragment_container, dummyFragment).commit();
+        FragmentTransaction transaction = getFragmentManager().beginTransaction()
+                .add(R.id.fragment_container, playerFragment);
+        if (currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
+            transaction.add(R.id.fragment_container, dummyFragment);
+        }
+        transaction.commit();
 
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (newConfig.orientation != currentOrientation) {
+            if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+
+                getFragmentManager().beginTransaction().remove(dummyFragment).commit();
+
+            } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT){
+
+                getFragmentManager().beginTransaction().add(R.id.fragment_container, dummyFragment).commit();
+
+            }
+            currentOrientation = newConfig.orientation;
+        }
     }
 
 /*    public void onArticleSelected(int position) {
@@ -70,10 +95,6 @@ public class PlayerActivity extends Activity {
         }
     }*/
 
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-    }
 }
 
 
