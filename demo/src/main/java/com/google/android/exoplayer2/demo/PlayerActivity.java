@@ -43,7 +43,7 @@ public class PlayerActivity extends Activity {
         FragmentTransaction transaction = getFragmentManager().beginTransaction()
                 .add(R.id.player, playerFragment);
         if (currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
-            transaction.add(R.id.player, dummyFragment);
+            transaction.add(R.id.dummy, dummyFragment);
         }
         transaction.commit();
     }
