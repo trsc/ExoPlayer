@@ -15,13 +15,14 @@
  */
 package com.google.android.exoplayer2.demo;
 
-import android.app.Activity;
+import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.util.JsonReader;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -51,47 +52,45 @@ import java.util.UUID;
 /**
  * An activity for selecting from a list of samples.
  */
-public class SampleChooserActivity extends Activity {
+public class SampleChooserFragment extends Fragment {
 
-  private static final String TAG = "SampleChooserActivity";
+  private static final String TAG = "SampleChooserFragment";
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    setContentView(R.layout.sample_chooser_activity);
-    Intent intent = getIntent();
-    String dataUri = intent.getDataString();
-    String[] uris;
-    if (dataUri != null) {
-      uris = new String[] {dataUri};
-    } else {
-      ArrayList<String> uriList = new ArrayList<>();
-      AssetManager assetManager = getAssets();
-      try {
-        for (String asset : assetManager.list("")) {
-          if (asset.endsWith(".exolist.json")) {
-            uriList.add("asset:///" + asset);
-          }
+    ArrayList<String> uriList = new ArrayList<>();
+    AssetManager assetManager = getActivity().getAssets();
+    try {
+      for (String asset : assetManager.list("")) {
+        if (asset.endsWith(".exolist.json")) {
+          uriList.add("asset:///" + asset);
         }
-      } catch (IOException e) {
-        Toast.makeText(getApplicationContext(), R.string.sample_list_load_error, Toast.LENGTH_LONG)
-            .show();
       }
-      uris = new String[uriList.size()];
-      uriList.toArray(uris);
-      Arrays.sort(uris);
+    } catch (IOException e) {
+      Toast.makeText(getContext(), R.string.sample_list_load_error, Toast.LENGTH_LONG)
+          .show();
     }
+    String[] uris = new String[uriList.size()];
+    uriList.toArray(uris);
+    Arrays.sort(uris);
     SampleListLoader loaderTask = new SampleListLoader();
     loaderTask.execute(uris);
   }
 
+  @Nullable
+  @Override
+  public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
+    return inflater.inflate(R.layout.sample_chooser_fragment, container, false);
+  }
+
   private void onSampleGroups(final List<SampleGroup> groups, boolean sawError) {
     if (sawError) {
-      Toast.makeText(getApplicationContext(), R.string.sample_list_load_error, Toast.LENGTH_LONG)
+      Toast.makeText(getContext(), R.string.sample_list_load_error, Toast.LENGTH_LONG)
           .show();
     }
-    ExpandableListView sampleList = (ExpandableListView) findViewById(R.id.sample_list);
-    sampleList.setAdapter(new SampleAdapter(this, groups));
+    ExpandableListView sampleList = (ExpandableListView) getActivity().findViewById(R.id.sample_list);
+    sampleList.setAdapter(new SampleAdapter(getContext(), groups));
     sampleList.setOnChildClickListener(new OnChildClickListener() {
       @Override
       public boolean onChildClick(ExpandableListView parent, View view, int groupPosition,
@@ -103,7 +102,7 @@ public class SampleChooserActivity extends Activity {
   }
 
   private void onSampleSelected(Sample sample) {
-    startActivity(sample.buildIntent(this));
+    startActivity(sample.buildIntent(getContext()));
   }
 
   private final class SampleListLoader extends AsyncTask<String, Void, List<SampleGroup>> {
@@ -113,7 +112,7 @@ public class SampleChooserActivity extends Activity {
     @Override
     protected List<SampleGroup> doInBackground(String... uris) {
       List<SampleGroup> result = new ArrayList<>();
-      Context context = getApplicationContext();
+      Context context = getContext();
       String userAgent = Util.getUserAgent(context, "ExoPlayerDemo");
       DataSource dataSource = new DefaultDataSource(context, null, userAgent, false);
       for (String uri : uris) {
