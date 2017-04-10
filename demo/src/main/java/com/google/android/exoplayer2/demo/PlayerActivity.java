@@ -6,6 +6,9 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewParent;
+import android.widget.FrameLayout;
 
 public class PlayerActivity extends Activity {
 
@@ -51,11 +54,16 @@ public class PlayerActivity extends Activity {
     @Override
     public void onBackPressed() {
         getFragmentManager().beginTransaction()
-                .remove(playerFragment)
                 .remove(dummyFragment)
                 .commit();
-        playerFragment = null;
-        dummyFragment = null;
+
+        View view = playerFragment.getView();
+        ViewGroup parent = (ViewGroup) view.getParent();
+        parent.removeView(view);
+
+        FrameLayout mini = (FrameLayout) findViewById(R.id.mini_player);
+        mini.addView(view);
+        mini.setVisibility(View.VISIBLE);
         findViewById(R.id.chooser).setVisibility(View.VISIBLE);
     }
 
