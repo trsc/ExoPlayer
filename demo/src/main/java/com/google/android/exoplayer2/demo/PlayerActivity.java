@@ -1,14 +1,12 @@
 package com.google.android.exoplayer2.demo;
 
 import android.app.Activity;
+import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewParent;
-import android.widget.FrameLayout;
 
 public class PlayerActivity extends Activity {
 
@@ -22,67 +20,83 @@ public class PlayerActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.player_activity);
-        sampleChooserFragment = new SampleChooserFragment();
+        sampleChooserFragment = new SampleChooserFragment().setCallback(pieceChosenCallback);
         getFragmentManager()
                 .beginTransaction()
-                .add(R.id.chooser, sampleChooserFragment)
+                .add(R.id.content, sampleChooserFragment, SampleChooserFragment.TAG)
                 .commit();
     }
 
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
+    private final SampleChooserFragment.PieceChosenCallback pieceChosenCallback = new SampleChooserFragment.PieceChosenCallback() {
+        @Override
+        public void pieceChosen(Intent intent) {
+            // findViewById(R.id.chooser).setVisibility(View.GONE);
+            playerFragment = new PlayerFragment();
+            Bundle extras = intent.getExtras();
+            extras.putString("ACTION", intent.getAction());
+            extras.putString("DATA", intent.getData().toString());
+            playerFragment.setArguments(extras);
+            dummyFragment = new DummyFragment();
+            currentOrientation = getResources().getConfiguration().orientation;
 
-        findViewById(R.id.chooser).setVisibility(View.GONE);
-        playerFragment = new PlayerFragment();
-        Bundle extras = intent.getExtras();
-        extras.putString("ACTION", intent.getAction());
-        extras.putString("DATA", intent.getData().toString());
-        playerFragment.setArguments(extras);
-        dummyFragment = new DummyFragment();
-        currentOrientation = getResources().getConfiguration().orientation;
-
-        // Add the fragment to the 'fragment_container' FrameLayout
-        FragmentTransaction transaction = getFragmentManager().beginTransaction()
-                .add(R.id.player, playerFragment);
-        if (currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
-            transaction.add(R.id.dummy, dummyFragment);
+            // Add the fragment to the 'fragment_container' FrameLayout
+            FragmentTransaction transaction = getFragmentManager()
+                    .beginTransaction()
+                    .addToBackStack("player")
+                    .replace(R.id.content, playerFragment, PlayerFragment.TAG);
+            if (currentOrientation == Configuration.ORIENTATION_PORTRAIT) {
+                transaction = transaction.add(R.id.content, dummyFragment);
+            }
+            transaction.commit();
         }
-        transaction.commit();
-    }
+    };
 
     @Override
     public void onBackPressed() {
-        getFragmentManager().beginTransaction()
-                .remove(dummyFragment)
-                .commit();
+        FragmentManager fm = getFragmentManager();
 
-        View view = playerFragment.getView();
-        ViewGroup parent = (ViewGroup) view.getParent();
-        parent.removeView(view);
+        if(fm.getBackStackEntryCount() > 0){
 
-        FrameLayout mini = (FrameLayout) findViewById(R.id.mini_player);
-        mini.addView(view);
-        mini.setVisibility(View.VISIBLE);
-        findViewById(R.id.chooser).setVisibility(View.VISIBLE);
+            playerFragment.setShouldReleaseOnStop(false);
+            PlayerFragment newFragment = new PlayerFragment();
+            newFragment.initializePlayerFromInstance(playerFragment);
+            this.playerFragment = newFragment;
+
+            fm.popBackStack("player", FragmentManager.POP_BACK_STACK_INCLUSIVE);
+
+            fm.beginTransaction()
+                    .add(R.id.mini_player, this.playerFragment)
+                    .commit();
+
+            fm.executePendingTransactions();
+
+            findViewById(R.id.mini_player).setVisibility(View.VISIBLE);
+
+        } else{
+            finish();
+        }
+
     }
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        if (newConfig.orientation != currentOrientation) {
+
+        if (getFragmentManager().findFragmentByTag(PlayerFragment.TAG) != null
+                && newConfig.orientation != currentOrientation) {
             if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
 
                 getFragmentManager().beginTransaction().remove(dummyFragment).commit();
 
             } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT){
 
-                getFragmentManager().beginTransaction().add(R.id.player, dummyFragment).commit();
+                getFragmentManager().beginTransaction().add(R.id.content, dummyFragment).commit();
 
             }
             currentOrientation = newConfig.orientation;
         }
     }
+
 
 }
 

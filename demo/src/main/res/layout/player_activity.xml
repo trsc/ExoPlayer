@@ -5,19 +5,10 @@
               android:layout_height="match_parent"
               android:orientation="vertical">
 
-    <FrameLayout
-        android:id="@+id/chooser"
+    <LinearLayout
+        android:id="@+id/content"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-    <FrameLayout
-        android:id="@+id/player"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
-
-    <FrameLayout
-        android:id="@+id/dummy"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="match_parent"
+        android:orientation="vertical"/>
 
 </LinearLayout>
