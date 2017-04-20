@@ -16,12 +16,15 @@
 package com.google.android.exoplayer2.demo;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.res.AssetManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.JsonReader;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -55,6 +58,25 @@ public class SampleChooserActivity extends Activity {
 
   private static final String TAG = "SampleChooserActivity";
 
+  private Intent serviceIntent;
+  private ExoPlayerService service;
+
+  private ServiceConnection serviceConnection = new ServiceConnection() {
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder binder) {
+      service = ((ExoPlayerService.ExoPlayerServiceBinder) binder).getService();
+      if (service.getPlayer() == null) {
+        // todo set to miniPlayer
+
+      }
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName name) {
+      service = null;
+    }
+  };
+
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -83,6 +105,13 @@ public class SampleChooserActivity extends Activity {
     }
     SampleListLoader loaderTask = new SampleListLoader();
     loaderTask.execute(uris);
+    startAudioService();
+  }
+
+  protected void startAudioService() {
+    serviceIntent = new Intent(this, ExoPlayerService.class);
+    startService(serviceIntent);
+    bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
   }
 
   private void onSampleGroups(final List<SampleGroup> groups, boolean sawError) {

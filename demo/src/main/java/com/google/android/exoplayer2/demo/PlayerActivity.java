@@ -16,11 +16,15 @@
 package com.google.android.exoplayer2.demo;
 
 import android.app.Activity;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.View;
@@ -29,6 +33,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.ExoPlaybackException;
@@ -67,6 +72,7 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
+
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
@@ -115,6 +121,29 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
   private boolean shouldAutoPlay;
   private int resumeWindow;
   private long resumePosition;
+
+  private Intent serviceIntent;
+  private ExoPlayerService service;
+
+  private ServiceConnection serviceConnection = new ServiceConnection() {
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder binder) {
+      service = ((ExoPlayerService.ExoPlayerServiceBinder) binder).getService();
+      if (service.getPlayer() == null) {
+        service.setPlayer(player);
+        service.setDebugViewHelper(debugViewHelper);
+        service.setEventLogger(eventLogger);
+        service.setMainHandler(mainHandler);
+        service.setTrackSelectionHelper(trackSelectionHelper);
+        service.setTrackSelector(trackSelector);
+      }
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName name) {
+      service = null;
+    }
+  };
 
   // Activity lifecycle
 
@@ -273,6 +302,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
       player.setPlayWhenReady(shouldAutoPlay);
       debugViewHelper = new DebugTextViewHelper(player, debugTextView);
       debugViewHelper.start();
+      startAudioService();
     }
     if (needNewPlayer || needRetrySource) {
       String action = intent.getAction();
@@ -313,6 +343,12 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
       needRetrySource = false;
       updateButtonVisibilities();
     }
+  }
+
+  protected void startAudioService() {
+    serviceIntent = new Intent(this, ExoPlayerService.class);
+    startService(serviceIntent);
+    bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
   }
 
   private MediaSource buildMediaSource(Uri uri, String overrideExtension) {
@@ -364,6 +400,7 @@ public class PlayerActivity extends Activity implements OnClickListener, ExoPlay
       trackSelector = null;
       trackSelectionHelper = null;
       eventLogger = null;
+      stopService(serviceIntent);
     }
   }
 
