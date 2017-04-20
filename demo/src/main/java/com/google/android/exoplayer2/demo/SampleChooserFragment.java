@@ -54,11 +54,30 @@ import java.util.UUID;
  */
 public class SampleChooserFragment extends Fragment {
 
-  private static final String TAG = "SampleChooserFragment";
+  public static final String TAG = "SampleChooserFragment";
+
+  public interface PieceChosenCallback {
+      void pieceChosen(Intent intent);
+  }
+
+  private PieceChosenCallback callback;
+
+  public SampleChooserFragment setCallback(PieceChosenCallback calback) {
+    this.callback = calback;
+    return this;
+  }
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+  }
+
+
+  @Nullable
+  @Override
+  public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
+    View view = inflater.inflate(R.layout.sample_chooser_fragment, container, false);
+
     ArrayList<String> uriList = new ArrayList<>();
     AssetManager assetManager = getActivity().getAssets();
     try {
@@ -69,19 +88,16 @@ public class SampleChooserFragment extends Fragment {
       }
     } catch (IOException e) {
       Toast.makeText(getContext(), R.string.sample_list_load_error, Toast.LENGTH_LONG)
-          .show();
+              .show();
     }
     String[] uris = new String[uriList.size()];
     uriList.toArray(uris);
     Arrays.sort(uris);
+
     SampleListLoader loaderTask = new SampleListLoader();
     loaderTask.execute(uris);
-  }
 
-  @Nullable
-  @Override
-  public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
-    return inflater.inflate(R.layout.sample_chooser_fragment, container, false);
+    return view;
   }
 
   private void onSampleGroups(final List<SampleGroup> groups, boolean sawError) {
@@ -102,7 +118,9 @@ public class SampleChooserFragment extends Fragment {
   }
 
   private void onSampleSelected(Sample sample) {
-    startActivity(sample.buildIntent(getContext()));
+
+    Intent intent = sample.buildIntent(getContext());
+    callback.pieceChosen(intent);
   }
 
   private final class SampleListLoader extends AsyncTask<String, Void, List<SampleGroup>> {

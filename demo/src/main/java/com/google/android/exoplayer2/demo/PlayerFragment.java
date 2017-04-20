@@ -15,7 +15,6 @@
  */
 package com.google.android.exoplayer2.demo;
 
-import android.app.Fragment;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -61,7 +60,7 @@ import java.util.UUID;
 /**
  * An activity that plays media using {@link SimpleExoPlayer}.
  */
-public class PlayerFragment extends Fragment implements OnClickListener, ExoPlayer.EventListener,
+public class PlayerFragment extends ContainerFragment<PlayerFragment> implements OnClickListener, ExoPlayer.EventListener,
     PlaybackControlView.VisibilityListener {
 
   public static final String DRM_SCHEME_UUID_EXTRA = "drm_scheme_uuid";
@@ -76,6 +75,8 @@ public class PlayerFragment extends Fragment implements OnClickListener, ExoPlay
       "com.google.android.exoplayer.demo.action.VIEW_LIST";
   public static final String URI_LIST_EXTRA = "uri_list";
   public static final String EXTENSION_LIST_EXTRA = "extension_list";
+
+  public static final String TAG = "PlayerFragment";
 
   private static final DefaultBandwidthMeter BANDWIDTH_METER = new DefaultBandwidthMeter();
   private static final CookieManager DEFAULT_COOKIE_MANAGER;
@@ -101,6 +102,7 @@ public class PlayerFragment extends Fragment implements OnClickListener, ExoPlay
   private boolean shouldAutoPlay;
   private int resumeWindow;
   private long resumePosition;
+  private boolean shouldReleaseOnStop;
 
   // Activity lifecycle
 
@@ -108,9 +110,9 @@ public class PlayerFragment extends Fragment implements OnClickListener, ExoPlay
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     shouldAutoPlay = true;
+    shouldReleaseOnStop = true;
     clearResumePosition();
     mediaDataSourceFactory = buildDataSourceFactory(true);
-    mainHandler = new Handler();
     if (CookieHandler.getDefault() != DEFAULT_COOKIE_MANAGER) {
       CookieHandler.setDefault(DEFAULT_COOKIE_MANAGER);
     }
@@ -153,10 +155,14 @@ public class PlayerFragment extends Fragment implements OnClickListener, ExoPlay
     }
   }
 
+  public void setShouldReleaseOnStop(boolean shouldReleaseOnStop) {
+    this.shouldReleaseOnStop = shouldReleaseOnStop;
+  }
+
   @Override
   public void onPause() {
     super.onPause();
-    if (Util.SDK_INT <= 23) {
+    if (Util.SDK_INT <= 23 && shouldReleaseOnStop) {
       releasePlayer();
     }
   }
@@ -164,7 +170,7 @@ public class PlayerFragment extends Fragment implements OnClickListener, ExoPlay
   @Override
   public void onStop() {
     super.onStop();
-    if (Util.SDK_INT > 23) {
+    if (Util.SDK_INT > 23 && shouldReleaseOnStop) {
       releasePlayer();
     }
   }
@@ -216,10 +222,22 @@ public class PlayerFragment extends Fragment implements OnClickListener, ExoPlay
 
   // Internal methods
 
+  protected void initializePlayerFromInstance(PlayerFragment runningFragment) {
+    this.mainHandler = runningFragment.mainHandler;
+    this.player = runningFragment.player;
+    this.trackSelector = runningFragment.trackSelector;
+    this.trackSelectionHelper = runningFragment.trackSelectionHelper;
+    this.eventLogger = runningFragment.eventLogger;
+    this.debugViewHelper = runningFragment.debugViewHelper;
+    player.removeListener(runningFragment);
+    player.addListener(this);
+  }
+
   private void initializePlayer() {
     Bundle bundle = getArguments();
     boolean needNewPlayer = player == null;
     if (needNewPlayer) {
+      mainHandler = new Handler();
       boolean preferExtensionDecoders = bundle.getBoolean(PREFER_EXTENSION_DECODERS, false);
       UUID drmSchemeUuid = bundle.containsKey(DRM_SCHEME_UUID_EXTRA)
           ? UUID.fromString(bundle.getString(DRM_SCHEME_UUID_EXTRA)) : null;
@@ -262,6 +280,8 @@ public class PlayerFragment extends Fragment implements OnClickListener, ExoPlay
       player.setPlayWhenReady(false);
       debugViewHelper = new DebugTextViewHelper(player, debugTextView);
       debugViewHelper.start();
+    } else {
+      simpleExoPlayerView.setPlayer(player);
     }
     if (needNewPlayer || needRetrySource) {
       String action = bundle.getString("ACTION");
@@ -342,7 +362,7 @@ public class PlayerFragment extends Fragment implements OnClickListener, ExoPlay
         FrameworkMediaDrm.newInstance(uuid), drmCallback, null, mainHandler, eventLogger);
   }
 
-  private void releasePlayer() {
+  protected void releasePlayer() {
     if (player != null) {
       debugViewHelper.stop();
       debugViewHelper = null;
